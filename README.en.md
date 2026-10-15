@@ -85,10 +85,9 @@ So the implementation becomes:
 
 ## Build
 
-On Windows, double-click `build_windows.bat` in the repository root. It creates a virtual environment, installs dependencies, builds the app, and generates:
+On Windows, double-click `build_windows.bat` in the repository root. It creates a virtual environment, installs dependencies, and generates a standalone executable that can be copied directly to the desktop:
 
-- `dist\MortarAid\MortarAid.exe`
-- `dist\MortarAid-win64.zip`
+- `dist\MortarAid.exe`
 
 Or build manually:
 
@@ -104,18 +103,10 @@ If you use project venv:
 
 Or download from release.
 
-## Release
-
-1. Build onedir output:
+## Manual Build
 
 ```bash
 python.exe -m PyInstaller --clean --noconfirm MortarAid.spec
-```
-
-2. Compress for distribution:
-
-```powershell
-Compress-Archive -Path .\dist\MortarAid\* -DestinationPath .\dist\MortarAid-win64.zip -Force
 ```
 
 ---

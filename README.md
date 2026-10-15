@@ -103,10 +103,9 @@ R = \frac{L + tan{\beta}(M - \sqrt{M^2 - 2LM\tan{\beta} - L^2})}{\tan^2{\beta} +
 
 ## 使用方法（默认：单文件 EXE）
 
-Windows 用户可直接双击仓库根目录的 `build_windows.bat`。脚本会自动创建虚拟环境、安装依赖、构建程序，并生成：
+Windows 用户可直接双击仓库根目录的 `build_windows.bat`。脚本会自动创建虚拟环境、安装依赖，并生成可单独复制到桌面的单文件程序：
 
-- `dist\MortarAid\MortarAid.exe`
-- `dist\MortarAid-win64.zip`
+- `dist\MortarAid.exe`
 
 也可以手动执行：
 
@@ -115,18 +114,10 @@ python.exe -m PyInstaller --clean --noconfirm --onefile --windowed --uac-admin -
 ```
 或者直接下载 [<u>release</u>](https://github.com/CurtisYan/MortarAid4PUBG/releases)
 
-## 发布备选方案（稳定）
-
-1. 先打包 onedir：
+## 手动打包
 
 ```bash
 python.exe -m PyInstaller --clean --noconfirm MortarAid.spec
-```
-
-2. 再压缩发布包：
-
-```powershell
-Compress-Archive -Path .\dist\MortarAid\* -DestinationPath .\dist\MortarAid-win64.zip -Force
 ```
 
 ---
