@@ -34,13 +34,11 @@ class main():
         self.start_hotkey = "alt+q"
         self.point_hotkey = "alt+left"
         self.point_modifier = self.point_hotkey.split("+", 1)[0]
-        self.reset_hotkey = "alt+right"
         self.start_combo_max_interval = 0.5
         self.cached_scale_factor = None
         self.cached_mortar_position = None
         self.exit_combo_guard_seconds = 1.5
         self.start_combo_options = [0.3, 0.5, 0.8]
-        self.reset_requested = False
         self.is_measuring = False
         self.exit_signal = object()
         self.start_requested = False
@@ -181,7 +179,6 @@ class main():
             f"{self.t('control_start')}\n"
             f"{self.t('control_refresh_mortar')}\n"
             f"{self.t('control_point')}\n\n"
-            f"{self.t('control_reset')}\n"
             f"{self.t('control_adjust_r')}\n\n"
         )
 
@@ -359,7 +356,6 @@ class main():
         add_text(self.t("help_line_start"))
         add_text(self.t("help_line_refresh_mortar"))
         add_text(self.t("help_line_point"))
-        add_text(self.t("help_line_reset"))
         add_text(self.t("help_line_r"), pady=(0, 10))
         add_text(self.t("help_line_settings"), pady=(0, 8))
         add_text(self.t("help_line_config"), font=subtitle_font)
@@ -766,7 +762,7 @@ class main():
         return "ok"
 
     def get_point(self):
-        # Block until a valid point, reset, or exit signal is received.
+        # Block until a valid point or exit signal is received.
         pos = None
 
         def on_click(event):
@@ -775,10 +771,6 @@ class main():
                 return
 
             modifier_pressed = self.is_modifier_pressed()
-
-            if modifier_pressed and event.button == 'right':
-                self.reset_requested = True
-                return
 
             if modifier_pressed and event.button == 'left':
                 pos = pyautogui.position()
@@ -789,10 +781,8 @@ class main():
             while pos is None:
                 if self.hotkey_state.consume_exit_request():
                     return self.exit_signal
-                if self.reset_requested:
-                    return None
                 self.pump_main_ui()
-                time.sleep(0.03)  # 防止 CPU 过载，同时提高退出与重置响应速度
+                time.sleep(0.03)  # 防止 CPU 过载，同时提高退出响应速度
             return pos
         finally:
             mouse.unhook(on_click)
@@ -845,10 +835,6 @@ class main():
 
         if self.root is not None:
             self.root.after(15, self.poll_global_hotkeys)
-
-    def request_reset(self):
-        if self.is_measuring:
-            self.reset_requested = True
 
     def on_alt_press(self, _event):
         action = self.hotkey_state.on_alt_press(self.is_measuring)
@@ -967,13 +953,9 @@ class main():
         point1 = self._get_step_point(window, label, self.t(first_key))
         if point1 is self.exit_signal:
             return self.exit_signal, self.exit_signal
-        if point1 is None:
-            return None, None
         point2 = self._get_step_point(window, label, self.t(second_key))
         if point2 is self.exit_signal:
             return self.exit_signal, self.exit_signal
-        if point2 is None:
-            return None, None
         return point1, point2
 
     def _run_measurement_once(self, window, label):
@@ -984,8 +966,6 @@ class main():
             point1, point2 = self._measure_two_points(window, label, "step_scale_1", "step_scale_2")
             if point1 is self.exit_signal:
                 return "exit"
-            if point1 is None:
-                return "reset"
             calculator.set_scale_factor(point1, point2)
             self.cached_scale_factor = calculator.scale_factor
             self.persist_settings()
@@ -999,8 +979,6 @@ class main():
             point1 = self._get_step_point(window, label, self.t("step_measure_1_cached"))
             if point1 is self.exit_signal:
                 return "exit"
-            if point1 is None:
-                return "reset"
             new_mortar_position = point1
         else:
             point1 = self.cached_mortar_position
@@ -1009,8 +987,6 @@ class main():
         point2 = self._get_step_point(window, label, self.t(target_key))
         if point2 is self.exit_signal:
             return "exit"
-        if point2 is None:
-            return "reset"
         if new_mortar_position is not None:
             self.cached_mortar_position = new_mortar_position
 
@@ -1029,7 +1005,6 @@ class main():
         return "done"
     
     def start_measurement(self):
-        # Measurement state machine: done -> close, reset -> restart, exit -> close now.
         if self.is_measuring:
             return
 
@@ -1040,32 +1015,11 @@ class main():
         window, label = self.create_static_window()
 
         try:
-            while True:
-                self.reset_requested = False
-                self.last_solution_value = None
-                self.r_trigger_deadline = 0.0
-                status = self._run_measurement_once(window, label)
-
-                if status == "exit":
-                    window.withdraw()
-                    window.update_idletasks()
-                    break
-
-                if status == "reset":
-                    self._set_overlay_text(window, label, "reset_restarting")
-                    if self.wait_with_ui(0.2, allow_exit=True) == "exit":
-                        window.withdraw()
-                        window.update_idletasks()
-                        break
-                    continue
-
-                if self.wait_with_ui(self.RESULT_HOLD_SECONDS, allow_exit=True) == "exit":
-                    window.withdraw()
-                    window.update_idletasks()
-                    break
-                break
+            status = self._run_measurement_once(window, label)
+            if status == "exit" or self.wait_with_ui(self.RESULT_HOLD_SECONDS, allow_exit=True) == "exit":
+                window.withdraw()
+                window.update_idletasks()
         finally:
-            self.reset_requested = False
             self.is_measuring = False
             self.last_solution_value = None
             self.r_trigger_deadline = 0.0
@@ -1080,7 +1034,6 @@ class main():
             self.prev_e_down = self._is_vk_down(ord("E"))
             self.prev_r_down = self._is_vk_down(ord("R"))
         else:
-            keyboard.add_hotkey(self.reset_hotkey, self.request_reset)
             keyboard.on_press_key(self.point_modifier, self.on_alt_press)
             keyboard.on_release_key(self.point_modifier, self.on_alt_release)
             keyboard.on_press_key("q", self.on_q_press)

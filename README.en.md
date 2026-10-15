@@ -126,8 +126,6 @@ Alt + E: Update mortar position and start measurement
 
 Alt + Left: Set point
 
-Alt + Right: Reset workflow
-
 R: One-key set mortar scale after calculation
 
 Settings entry: Menu -> Settings
@@ -175,23 +173,18 @@ After marking the map target, the tool immediately outputs mortar distance. Pres
   - multiple Alt+Q: treated as misfire, no exit.
 - After 1.5s, Alt+Q exits immediately.
 
-### 3) Reset During Flow (Alt + Right)
-
-- Sets reset_requested = True.
-- Current step stops and restarts from the first required step. With a cached scale, it restarts from distance marking.
-
-### 4) Mark Points (Alt + Left)
+### 3) Mark Points (Alt + Left)
 
 - Records mouse coordinates.
 - Collects scale and distance points; the quick workflow does not request an elevation point.
 
-### 5) Quick Adjust in Result Window (R)
+### 4) Quick Adjust in Result Window (R)
 
 - Result window stays for 5 seconds.
 - Press R only within this 5-second window to auto-scroll.
 - Auto-scroll resets to 700 first, then scrolls to target scale.
 
-### 6) Settings Persistence
+### 5) Settings Persistence
 
 - Single-window app with Home/Settings switch.
 - Settings page supports language and trigger window.
