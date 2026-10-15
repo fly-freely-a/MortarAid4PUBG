@@ -11,7 +11,7 @@ For technical communication and entertainment purposes only.
 ## Core Idea
 
 1. Use a 100m map grid as scale calibration.
-2. Apply elevation-angle correction.
+2. The current quick workflow uses map distance directly and does not require an elevation mark.
 
 We combine projectile motion with geometric elevation relation:
 
@@ -148,10 +148,7 @@ Configurable options:
 **2:** First mark the mortar and target positions. Later measurements reuse the mortar position, so only the new target is needed. After relocating or moving the map, use `Alt + Shift + Q` to update the mortar position and start measuring.
 ![step2](img/guide-step2.png)
 
-*** (Step 3: do this while seated on the mortar) ***
-**3:** Mark target icon position on screen (after pressing TAB/ESC to show cursor). Tool computes elevation.
-
-Then the tool outputs mortar range. Press R to auto-set mortar scale.
+After marking the map target, the tool immediately outputs mortar distance. Press R to auto-set the mortar scale; no second screen-target mark is required.
 
 ## Developer Workflow
 
@@ -186,7 +183,7 @@ Then the tool outputs mortar range. Press R to auto-set mortar scale.
 ### 4) Mark Points (Alt + Left)
 
 - Records mouse coordinates.
-- Collects scale points, distance points, and elevation point.
+- Collects scale and distance points; the quick workflow does not request an elevation point.
 
 ### 5) Quick Adjust in Result Window (R)
 

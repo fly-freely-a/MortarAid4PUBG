@@ -370,8 +370,6 @@ class main():
         add_image("guide-step1.png")
         add_text(self.t("help_step_2"), pady=(0, 4))
         add_image("guide-step2.png")
-        add_text(self.t("help_step_group_3"), font=subtitle_font)
-        add_text(self.t("help_step_3"), pady=(0, 10))
         add_text(self.t("help_result"), font=subtitle_font)
 
         canvas.yview_moveto(0)
@@ -968,8 +966,6 @@ class main():
 
     def _run_measurement_once(self, window, label):
         calculator = calc.calculator()
-        screen_height = pyautogui.size().height
-        calculator.set_viewport_height(screen_height)
 
         if self.cached_scale_factor is None:
             # Calibrate once for the current map zoom, then reuse it in later runs.
@@ -1006,28 +1002,16 @@ class main():
         if new_mortar_position is not None:
             self.cached_mortar_position = new_mortar_position
 
-        # calculate horizontal distance
+        # The common in-game flow uses the map distance directly. Elevation
+        # correction is intentionally not a required second target mark.
         calculator.get_horizontal_distance(point1, point2)
-        self._set_overlay_text(window, label, "max_distance", value=calculator.horizontal_distance)
-
-        # get elevation angle point
-        point = self._get_step_point(window, label, self.t("step_elevation"))
-        if point is self.exit_signal:
-            return "exit"
-        if point is None:
-            return "reset"
-
-        # calculate elevation angle
-        self._set_overlay_text(window, label, "elevation_value", value=calculator.get_evelation_angle(point))
-
-        # calculate final distance
         self._set_overlay_text(
             window,
             label,
             "distance_value",
-            value=calculator.solve(calculator.evelation_angle, calculator.horizontal_distance),
+            value=calculator.horizontal_distance,
         )
-        self.last_solution_value = calculator.result
+        self.last_solution_value = calculator.horizontal_distance
         self.r_trigger_deadline = time.monotonic() + self.RESULT_HOLD_SECONDS
 
         return "done"
