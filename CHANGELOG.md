@@ -4,7 +4,7 @@
 
 ## 统计
 
-- 累计记录天数：2
+- 累计记录天数：3
 
 ## 记录规则
 
@@ -90,6 +90,32 @@
 - README.md
 - README.en.md
 - CHANGELOG.md
+
+## 2026-10-15
+
+#### 新增
+
+- 新增 100 米比例尺持久化缓存，首次标定后，后续测距自动跳过两个比例尺标点。
+- 设置页新增比例尺缓存状态和清除入口，地图缩放变化后可手动触发下次重新标定。
+- 新增本次运行内的迫击炮位置缓存，架炮后连续测距只需标记新目标。
+- 新增 `Alt + Shift + Q` 更新炮位并开始测距，适配人物频繁换点重新架炮的场景。
+- 新增 Windows 一键打包脚本，自动创建虚拟环境、安装依赖、构建 EXE 并生成 Zip 发布包。
+
+#### 优化
+
+- 优化测距悬浮提示，复用缓存时明确显示当前正在使用已缓存的 100 米比例尺。
+- 保持旧版设置文件兼容，缺少缓存字段时仍按首次标定流程运行。
+
+#### 影响文件
+
+- main.py
+- mortar_tools/settings_store.py
+- mortar_tools/i18n_texts.py
+- README.md
+- README.en.md
+- CHANGELOG.md
+- tests/test_settings_store.py
+- build_windows.bat
 
 ---
 

@@ -1,14 +1,16 @@
 import json
+import math
 import os
 import sys
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Optional
 
 
 @dataclass
 class AppSettings:
     language: str = "en"
     start_combo_max_interval: float = 0.5
+    cached_scale_factor: Optional[float] = None
 
 
 def _resolve_legacy_settings_path() -> str:
@@ -61,6 +63,12 @@ def load_settings(path: str, allowed_intervals: Iterable[float]) -> AppSettings:
                 settings.start_combo_max_interval = float(option)
                 break
 
+    cached_scale_factor = data.get("cached_scale_factor")
+    if isinstance(cached_scale_factor, (int, float)):
+        cached_scale_factor = float(cached_scale_factor)
+        if math.isfinite(cached_scale_factor) and cached_scale_factor > 0:
+            settings.cached_scale_factor = cached_scale_factor
+
     return settings
 
 
@@ -68,6 +76,7 @@ def save_settings(path: str, settings: AppSettings) -> None:
     data = {
         "language": settings.language,
         "start_combo_max_interval": settings.start_combo_max_interval,
+        "cached_scale_factor": settings.cached_scale_factor,
     }
     try:
         directory = os.path.dirname(path)

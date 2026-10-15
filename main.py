@@ -36,12 +36,15 @@ class main():
         self.point_modifier = self.point_hotkey.split("+", 1)[0]
         self.reset_hotkey = "alt+right"
         self.start_combo_max_interval = 0.5
+        self.cached_scale_factor = None
+        self.cached_mortar_position = None
         self.exit_combo_guard_seconds = 1.5
         self.start_combo_options = [0.3, 0.5, 0.8]
         self.reset_requested = False
         self.is_measuring = False
         self.exit_signal = object()
         self.start_requested = False
+        self.start_force_mortar_refresh = False
         self.language = "en"
         self.hotkey_state = HotkeyStateMachine(
             start_combo_max_interval=self.start_combo_max_interval,
@@ -85,6 +88,7 @@ class main():
         if settings.language in self.i18n:
             self.language = settings.language
         self.start_combo_max_interval = settings.start_combo_max_interval
+        self.cached_scale_factor = settings.cached_scale_factor
         self.hotkey_state.set_start_combo_max_interval(self.start_combo_max_interval)
         self.title = self.t("window_title")
 
@@ -94,6 +98,7 @@ class main():
             AppSettings(
                 language=self.language,
                 start_combo_max_interval=self.start_combo_max_interval,
+                cached_scale_factor=self.cached_scale_factor,
             ),
         )
 
@@ -173,6 +178,7 @@ class main():
         return (
             f"{self.t('control_title')}\n"
             f"{self.t('control_start')}\n"
+            f"{self.t('control_refresh_mortar')}\n"
             f"{self.t('control_point')}\n\n"
             f"{self.t('control_reset')}\n"
             f"{self.t('control_adjust_r')}\n\n"
@@ -350,6 +356,7 @@ class main():
             tk.Label(inner, image=img, bg=self.ui_colors["surface"]).pack(anchor="w", padx=12, pady=(0, 10))
 
         add_text(self.t("help_line_start"))
+        add_text(self.t("help_line_refresh_mortar"))
         add_text(self.t("help_line_point"))
         add_text(self.t("help_line_reset"))
         add_text(self.t("help_line_r"), pady=(0, 10))
@@ -551,6 +558,84 @@ class main():
                 pady=9,
             ).pack(fill="x")
 
+        scale_card = tk.Frame(
+            content_area,
+            bg=self.ui_colors["surface"],
+            relief="flat",
+            bd=1,
+            highlightthickness=1,
+            highlightbackground=self.ui_colors["border"],
+            padx=12,
+            pady=10,
+        )
+        scale_card.pack(fill="x", pady=(0, 10))
+        tk.Label(
+            scale_card,
+            text=self.t("settings_scale_cache"),
+            font=section_title_font,
+            fg=self.ui_colors["title"],
+            bg=self.ui_colors["surface"],
+            anchor="w",
+        ).pack(fill="x", pady=(0, 8))
+
+        scale_row = tk.Frame(scale_card, bg=self.ui_colors["surface"])
+        scale_row.pack(fill="x")
+        status_key = "settings_scale_cached" if self.cached_scale_factor is not None else "settings_scale_empty"
+        tk.Label(
+            scale_row,
+            text=self.t(status_key),
+            font=body_font,
+            fg=self.ui_colors["muted"],
+            bg=self.ui_colors["surface"],
+            anchor="w",
+        ).pack(side="left", fill="x", expand=True)
+        tk.Button(
+            scale_row,
+            text=self.t("settings_scale_clear"),
+            command=self.clear_cached_scale_factor,
+            state="normal" if self.cached_scale_factor is not None else "disabled",
+            font=body_font,
+            bg=self.ui_colors["surface_alt"],
+            fg=self.ui_colors["accent"],
+            activebackground=self.ui_colors["accent_soft"],
+            activeforeground=self.ui_colors["accent"],
+            relief="solid",
+            bd=1,
+            padx=12,
+            pady=6,
+            cursor="hand2",
+        ).pack(side="right")
+
+        mortar_row = tk.Frame(scale_card, bg=self.ui_colors["surface"])
+        mortar_row.pack(fill="x", pady=(10, 0))
+        mortar_status_key = (
+            "settings_mortar_cached" if self.cached_mortar_position is not None else "settings_mortar_empty"
+        )
+        tk.Label(
+            mortar_row,
+            text=self.t(mortar_status_key),
+            font=body_font,
+            fg=self.ui_colors["muted"],
+            bg=self.ui_colors["surface"],
+            anchor="w",
+        ).pack(side="left", fill="x", expand=True)
+        tk.Button(
+            mortar_row,
+            text=self.t("settings_mortar_clear"),
+            command=self.clear_cached_mortar_position,
+            state="normal" if self.cached_mortar_position is not None else "disabled",
+            font=body_font,
+            bg=self.ui_colors["surface_alt"],
+            fg=self.ui_colors["accent"],
+            activebackground=self.ui_colors["accent_soft"],
+            activeforeground=self.ui_colors["accent"],
+            relief="solid",
+            bd=1,
+            padx=12,
+            pady=6,
+            cursor="hand2",
+        ).pack(side="right")
+
         back_button = tk.Button(
             footer,
             text=self.t("settings_back"),
@@ -615,6 +700,20 @@ class main():
 
     def toggle_trigger_help(self):
         self.trigger_help_visible = not self.trigger_help_visible
+        if self.current_page == "settings":
+            self.build_settings_page()
+            self.update_window_size_for_page()
+
+    def clear_cached_scale_factor(self):
+        self.cached_scale_factor = None
+        self.cached_mortar_position = None
+        self.persist_settings()
+        if self.current_page == "settings":
+            self.build_settings_page()
+            self.update_window_size_for_page()
+
+    def clear_cached_mortar_position(self):
+        self.cached_mortar_position = None
         if self.current_page == "settings":
             self.build_settings_page()
             self.update_window_size_for_page()
@@ -712,6 +811,11 @@ class main():
             return self._is_vk_down(0x12)
         return self.hotkey_state.alt_is_down or keyboard.is_pressed(self.point_modifier)
 
+    def is_shift_pressed(self):
+        if self.use_windows_key_polling:
+            return self._is_vk_down(0x10)
+        return keyboard.is_pressed("shift")
+
     def poll_global_hotkeys(self):
         if self.use_windows_key_polling:
             alt_down = self._is_vk_down(0x12)
@@ -745,7 +849,7 @@ class main():
     def on_alt_press(self, _event):
         action = self.hotkey_state.on_alt_press(self.is_measuring)
         if action == "start":
-            self.start_requested = True
+            self.request_measurement_start()
 
     def on_alt_release(self, _event):
         self.hotkey_state.on_alt_release()
@@ -753,10 +857,14 @@ class main():
     def on_q_press(self, _event):
         action = self.hotkey_state.on_q_press(self.is_measuring)
         if action == "start":
-            self.start_requested = True
+            self.request_measurement_start()
 
     def on_q_release(self, _event):
         self.hotkey_state.on_q_release()
+
+    def request_measurement_start(self):
+        self.start_requested = True
+        self.start_force_mortar_refresh = self.is_shift_pressed()
 
     def on_r_press(self, _event):
         if time.monotonic() > self.r_trigger_deadline:
@@ -833,6 +941,9 @@ class main():
         # Keep UI-thread dispatch for start requests from either hook or polling path.
         if self.start_requested and not self.is_measuring:
             self.start_requested = False
+            if self.start_force_mortar_refresh:
+                self.cached_mortar_position = None
+            self.start_force_mortar_refresh = False
             self.start_measurement()
         if self.root is not None:
             self.root.after(30, self.process_pending_actions)
@@ -860,22 +971,40 @@ class main():
         screen_height = pyautogui.size().height
         calculator.set_viewport_height(screen_height)
 
-        # get point1 and point2 for scale factor
-        point1, point2 = self._measure_two_points(window, label, "step_scale_1", "step_scale_2")
-        if point1 is self.exit_signal:
-            return "exit"
-        if point1 is None:
-            return "reset"
+        if self.cached_scale_factor is None:
+            # Calibrate once for the current map zoom, then reuse it in later runs.
+            point1, point2 = self._measure_two_points(window, label, "step_scale_1", "step_scale_2")
+            if point1 is self.exit_signal:
+                return "exit"
+            if point1 is None:
+                return "reset"
+            calculator.set_scale_factor(point1, point2)
+            self.cached_scale_factor = calculator.scale_factor
+            self.persist_settings()
+        else:
+            calculator.scale_factor = self.cached_scale_factor
 
-        # calculate scale factor
-        calculator.set_scale_factor(point1, point2)
+        # Cache the mortar map position for this app session. Unlike scale, a map
+        # position is not safe to reuse after restarting, changing map view, or relocating.
+        new_mortar_position = None
+        if self.cached_mortar_position is None:
+            point1 = self._get_step_point(window, label, self.t("step_measure_1_cached"))
+            if point1 is self.exit_signal:
+                return "exit"
+            if point1 is None:
+                return "reset"
+            new_mortar_position = point1
+        else:
+            point1 = self.cached_mortar_position
 
-        # get point1 and point2 for distance
-        point1, point2 = self._measure_two_points(window, label, "step_measure_1", "step_measure_2")
-        if point1 is self.exit_signal:
+        target_key = "step_measure_2_cached_mortar" if self.cached_mortar_position is not None else "step_measure_2"
+        point2 = self._get_step_point(window, label, self.t(target_key))
+        if point2 is self.exit_signal:
             return "exit"
-        if point1 is None:
+        if point2 is None:
             return "reset"
+        if new_mortar_position is not None:
+            self.cached_mortar_position = new_mortar_position
 
         # calculate horizontal distance
         calculator.get_horizontal_distance(point1, point2)

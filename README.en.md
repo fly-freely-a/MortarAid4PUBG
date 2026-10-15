@@ -85,6 +85,13 @@ So the implementation becomes:
 
 ## Build
 
+On Windows, double-click `build_windows.bat` in the repository root. It creates a virtual environment, installs dependencies, builds the app, and generates:
+
+- `dist\MortarAid\MortarAid.exe`
+- `dist\MortarAid-win64.zip`
+
+Or build manually:
+
 ```bash
 python.exe -m PyInstaller --clean --noconfirm MortarAid.spec
 ```
@@ -115,6 +122,8 @@ Compress-Archive -Path .\dist\MortarAid\* -DestinationPath .\dist\MortarAid-win6
 
 Alt + Q: Start measurement
 
+Alt + Shift + Q: Update mortar position and start measurement
+
 Alt + Left: Set point
 
 Alt + Right: Reset workflow
@@ -127,14 +136,16 @@ Configurable options:
 
 - Language (Chinese/English)
 - Alt + Q trigger window (0.3 / 0.5 / 0.8s)
+- Cached 100m map scale (clear and recalibrate after changing map zoom)
+- Mortar position cache (reused during this app session; update with Alt + Shift + Q after relocating or moving the map)
 
 >If hotkeys do not trigger, right-click the app icon -> Properties -> enable "Run this program as an administrator".
 
 *** (Step 1-2: open map and keep zoom unchanged during these two steps) ***
-**1:** Mark two points for one 100m grid distance. Tool calibrates the scale.
+**1:** On first use, mark two points for one 100m grid distance. The tool calibrates and caches the scale, then skips this step on later measurements. Clear the cached scale in Settings after changing map zoom.
 ![step1](img/guide-step1.png)
 
-**2:** Mark your position and target position.
+**2:** First mark the mortar and target positions. Later measurements reuse the mortar position, so only the new target is needed. After relocating or moving the map, use `Alt + Shift + Q` to update the mortar position and start measuring.
 ![step2](img/guide-step2.png)
 
 *** (Step 3: do this while seated on the mortar) ***
@@ -157,6 +168,7 @@ Then the tool outputs mortar range. Press R to auto-set mortar scale.
 - Record Alt/Q press timestamps.
 - Start only when interval <= start_combo_max_interval.
 - Supports either Alt-first or Q-first.
+- Regular `Alt + Q` reuses the mortar position cached for this app session. `Alt + Shift + Q` clears it before starting so a new position is captured.
 
 ### 2) Exit During Flow (Alt + Q)
 
@@ -169,7 +181,7 @@ Then the tool outputs mortar range. Press R to auto-set mortar scale.
 ### 3) Reset During Flow (Alt + Right)
 
 - Sets reset_requested = True.
-- Current step stops and restarts from scale step 1.
+- Current step stops and restarts from the first required step. With a cached scale, it restarts from distance marking.
 
 ### 4) Mark Points (Alt + Left)
 
@@ -186,6 +198,8 @@ Then the tool outputs mortar range. Press R to auto-set mortar scale.
 
 - Single-window app with Home/Settings switch.
 - Settings page supports language and trigger window.
+- The first 100m calibration is cached and reused. Clear it in Settings after changing map zoom.
+- Mortar position is cached only for the current app session. Use `Alt + Shift + Q` to update it after relocating or moving the map.
 - On Windows, saved to %APPDATA%/MortarAid/settings.json.
 - Falls back to legacy root settings.json if needed.
 
