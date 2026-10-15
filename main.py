@@ -65,6 +65,7 @@ class main():
         self.use_windows_key_polling = sys.platform == "win32"
         self.prev_alt_down = False
         self.prev_q_down = False
+        self.prev_e_down = False
         self.prev_r_down = False
         self.trigger_help_visible = False
         self.last_solution_value = None
@@ -809,15 +810,16 @@ class main():
             return self._is_vk_down(0x12)
         return self.hotkey_state.alt_is_down or keyboard.is_pressed(self.point_modifier)
 
-    def is_shift_pressed(self):
+    def is_refresh_key_pressed(self):
         if self.use_windows_key_polling:
-            return self._is_vk_down(0x10)
-        return keyboard.is_pressed("shift")
+            return self._is_vk_down(ord("E"))
+        return keyboard.is_pressed("e")
 
     def poll_global_hotkeys(self):
         if self.use_windows_key_polling:
             alt_down = self._is_vk_down(0x12)
             q_down = self._is_vk_down(ord("Q"))
+            e_down = self._is_vk_down(ord("E"))
             r_down = self._is_vk_down(ord("R"))
 
             if alt_down and not self.prev_alt_down:
@@ -830,11 +832,15 @@ class main():
             elif self.prev_q_down and not q_down:
                 self.on_q_release(None)
 
+            if e_down and not self.prev_e_down:
+                self.on_e_press(None)
+
             if r_down and not self.prev_r_down:
                 self.on_r_press(None)
 
             self.prev_alt_down = alt_down
             self.prev_q_down = q_down
+            self.prev_e_down = e_down
             self.prev_r_down = r_down
 
         if self.root is not None:
@@ -848,6 +854,8 @@ class main():
         action = self.hotkey_state.on_alt_press(self.is_measuring)
         if action == "start":
             self.request_measurement_start()
+        elif not self.is_measuring and self.is_refresh_key_pressed():
+            self.request_measurement_start(force_mortar_refresh=True)
 
     def on_alt_release(self, _event):
         self.hotkey_state.on_alt_release()
@@ -860,9 +868,13 @@ class main():
     def on_q_release(self, _event):
         self.hotkey_state.on_q_release()
 
-    def request_measurement_start(self):
+    def on_e_press(self, _event):
+        if not self.is_measuring and self.is_modifier_pressed():
+            self.request_measurement_start(force_mortar_refresh=True)
+
+    def request_measurement_start(self, force_mortar_refresh=False):
         self.start_requested = True
-        self.start_force_mortar_refresh = self.is_shift_pressed()
+        self.start_force_mortar_refresh = bool(force_mortar_refresh)
 
     def on_r_press(self, _event):
         if time.monotonic() > self.r_trigger_deadline:
@@ -1065,6 +1077,7 @@ class main():
         if self.use_windows_key_polling:
             self.prev_alt_down = self._is_vk_down(0x12)
             self.prev_q_down = self._is_vk_down(ord("Q"))
+            self.prev_e_down = self._is_vk_down(ord("E"))
             self.prev_r_down = self._is_vk_down(ord("R"))
         else:
             keyboard.add_hotkey(self.reset_hotkey, self.request_reset)
@@ -1072,13 +1085,13 @@ class main():
             keyboard.on_release_key(self.point_modifier, self.on_alt_release)
             keyboard.on_press_key("q", self.on_q_press)
             keyboard.on_release_key("q", self.on_q_release)
+            keyboard.on_press_key("e", self.on_e_press)
             keyboard.on_press_key("r", self.on_r_press)
 
         # create UI
         self.root = tk.Tk()
         self.root.geometry(self.geometry)
         self.root.configure(bg=self.ui_colors["bg"])
-        self.root.attributes("-topmost", True)
 
         self.create_pages()
 
